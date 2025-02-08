@@ -1,4 +1,4 @@
-package main
+package repository
 
 import (
 	"log"
@@ -18,4 +18,17 @@ func InsertTask(msg MessageRequest) {
 	}
 	DB.Create(&message)
 	log.Println("Succesfully added")
+}
+
+func UpdateTask(iD int, msg MessageRequest) {
+	var message Message
+	DB.Model(&message).Where("id = ?", iD).Updates(Message{Task: msg.Message})
+}
+
+type MessageRequest struct {
+	Message string `json:"message"`
+}
+
+func DeleteTask(iD int) {
+	DB.Delete(&Message{}, iD)
 }
