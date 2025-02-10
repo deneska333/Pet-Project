@@ -20,9 +20,11 @@ func InsertTask(msg MessageRequest) {
 	log.Println("Succesfully added")
 }
 
-func UpdateTask(iD int, msg MessageRequest) {
+func UpdateTask(iD int, msg MessageRequest) Message {
 	var message Message
 	DB.Model(&message).Where("id = ?", iD).Updates(Message{Task: msg.Message})
+	DB.First(&message, iD)
+	return message
 }
 
 type MessageRequest struct {
@@ -31,4 +33,8 @@ type MessageRequest struct {
 
 func DeleteTask(iD int) {
 	DB.Delete(&Message{}, iD)
+}
+
+func GetMessages(messages *[]Message) {
+	DB.Find(&messages)
 }

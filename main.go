@@ -4,7 +4,6 @@ import (
 	repository "Project/Repository"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -25,9 +24,9 @@ func main() {
 
 func GetMessages(w http.ResponseWriter, r *http.Request) {
 	var messages []repository.Message
-	repository.DB.Find(&messages)
+	repository.GetMessages(&messages)
 	json.NewEncoder(w).Encode(messages)
-	log.Println(messages)
+
 }
 
 func PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +40,9 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	repository.InsertTask(message)
 
-	log.Println(message)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(message)
+
 }
 
 func PatchMessages(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +58,10 @@ func PatchMessages(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	repository.UpdateTask(id, message)
+
+	msg := repository.UpdateTask(id, message)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(msg)
 }
 
 func DeleteMessages(w http.ResponseWriter, r *http.Request) {
@@ -71,5 +75,5 @@ func DeleteMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repository.DeleteTask(id)
-
+	w.WriteHeader(204)
 }
