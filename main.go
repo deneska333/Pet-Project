@@ -38,10 +38,10 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repository.InsertTask(message)
+	newMessage := repository.InsertTask(message)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(newMessage)
 
 }
 

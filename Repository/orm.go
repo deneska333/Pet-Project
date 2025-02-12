@@ -12,12 +12,14 @@ type Message struct {
 	IsDone bool   `json:"isDone"`
 }
 
-func InsertTask(msg MessageRequest) {
+func InsertTask(msg MessageRequest) Message {
 	message := Message{
-		Task: msg.Message, IsDone: false,
+		Task:   msg.Message,
+		IsDone: false,
 	}
 	DB.Create(&message)
-	log.Println("Succesfully added")
+	log.Println("Successfully added")
+	return message
 }
 
 func UpdateTask(iD int, msg MessageRequest) Message {
