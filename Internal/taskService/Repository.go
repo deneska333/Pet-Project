@@ -1,8 +1,6 @@
 package taskService
 
 import (
-	"Project/Internal/request"
-
 	"gorm.io/gorm"
 )
 
@@ -11,7 +9,7 @@ type TaskRepository interface {
 
 	GetAllTasks() ([]Task, error)
 
-	PatchTasks(id int, task request.MessageRequest) (Task, error)
+	PatchTasks(id int, task Task) (Task, error)
 
 	DeleteTaskByID(id int) error
 }
@@ -36,11 +34,11 @@ func (r *taskRepository) GetAllTasks() ([]Task, error) {
 	return tasks, err
 }
 
-func (r *taskRepository) PatchTasks(iD int, msg request.MessageRequest) (Task, error) {
-	var message Task
-	err := r.db.Model(&message).Where("id = ?", iD).Updates(Task{Task: msg.Message}).Error
-	r.db.First(&message, iD)
-	return message, err
+func (r *taskRepository) PatchTasks(iD int, task Task) (Task, error) {
+	var updatedTask Task
+	err := r.db.Model(&updatedTask).Where("id = ?", iD).Updates(Task{Task: task.Task, IsDone: task.IsDone}).Error
+	r.db.First(&updatedTask, iD)
+	return updatedTask, err
 }
 
 func (r *taskRepository) DeleteTaskByID(iD int) error {

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"Project/Internal/request"
 	"Project/Internal/taskService"
 	"encoding/json"
 	"log"
@@ -54,7 +53,7 @@ func (h *Handler) PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sid := vars["id"]
 	id, _ := strconv.Atoi(sid)
-	var task request.MessageRequest
+	var task taskService.Task
 	err := json.NewDecoder(r.Body).Decode(&task)
 
 	if err != nil {
@@ -87,5 +86,6 @@ func (h *Handler) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error with delete", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusNoContent)
 
 }

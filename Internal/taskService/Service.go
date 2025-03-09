@@ -1,9 +1,5 @@
 package taskService
 
-import (
-	"Project/Internal/request"
-)
-
 type TaskService struct {
 	repo TaskRepository
 }
@@ -24,7 +20,7 @@ func (s *TaskService) GetAllTask() ([]Task, error) {
 	return task, nil
 }
 
-func (s *TaskService) UpdateTask(id int, task request.MessageRequest) (Task, error) {
+func (s *TaskService) UpdateTask(id int, task Task) (Task, error) {
 	return s.repo.PatchTasks(id, task)
 }
 
