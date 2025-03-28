@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"Project/Internal/taskService"
-	"encoding/json"
-	"log"
-	"net/http"
-	"strconv"
+	"context"
+	"errors"
+	"project/internal/taskService"
+	"project/internal/web/tasks"
 
-	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -15,77 +14,75 @@ type Handler struct {
 }
 
 func NewHandler(service *taskService.TaskService) *Handler {
-	return &Handler{
-		Service: service,
-	}
+	return &Handler{Service: service}
 }
 
-func (h *Handler) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.Service.GetAllTask()
+func (h *Handler) GetTasks(_ context.Context, _ tasks.GetTasksRequestObject) (tasks.GetTasksResponseObject, error) {
+	allTasks, err := h.Service.GetAllTasks()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return nil, err
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tasks)
+
+	response := tasks.GetTasks200JSONResponse{}
+	for _, tsk := range allTasks {
+		id := int64(tsk.ID)
+		response = append(response, tasks.Task{
+			Id:     &id,
+			Task:   &tsk.Text,
+			IsDone: &tsk.IsDone,
+		})
+	}
+	return response, nil
 }
 
-func (h *Handler) PostTaskHandler(w http.ResponseWriter, r *http.Request) {
-	var task taskService.Task
-	err := json.NewDecoder(r.Body).Decode(&task)
-	log.Println(task)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func (h *Handler) PostTasks(_ context.Context, request tasks.PostTasksRequestObject) (tasks.PostTasksResponseObject, error) {
+	taskToCreate := taskService.Task{
+		Text:   *request.Body.Task,
+		IsDone: *request.Body.IsDone,
 	}
 
-	createdTask, err := h.Service.CreateTask(task)
+	createdTask, err := h.Service.CreateTask(taskToCreate)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(createdTask)
+	id := int64(createdTask.ID)
+	return tasks.PostTasks201JSONResponse{
+		Id:     &id,
+		Task:   &createdTask.Text,
+		IsDone: &createdTask.IsDone,
+	}, nil
 }
 
-func (h *Handler) PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	sid := vars["id"]
-	id, _ := strconv.Atoi(sid)
-	var task taskService.Task
-	err := json.NewDecoder(r.Body).Decode(&task)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func (h *Handler) PatchTasksId(_ context.Context, request tasks.PatchTasksIdRequestObject) (tasks.PatchTasksIdResponseObject, error) {
+	updateData := taskService.Task{
+		Text:   *request.Body.Task,
+		IsDone: *request.Body.IsDone,
 	}
 
-	updateTask, err := h.Service.UpdateTask(id, task)
-
+	updatedTask, err := h.Service.UpdateTask(uint(request.Id), updateData)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return tasks.PatchTasksId404Response{}, nil
+	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updateTask)
-
+	id := int64(updatedTask.ID)
+	return tasks.PatchTasksId200JSONResponse{
+		Id:     &id,
+		Task:   &updatedTask.Text,
+		IsDone: &updatedTask.IsDone,
+	}, nil
 }
 
-func (h *Handler) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	sid := vars["id"]
-	id, err := strconv.Atoi(sid)
-	if err != nil {
-		http.Error(w, "Error with convert", http.StatusInternalServerError)
-		return
+func (h *Handler) DeleteTasksId(_ context.Context, request tasks.DeleteTasksIdRequestObject) (tasks.DeleteTasksIdResponseObject, error) {
+	err := h.Service.DeleteTask(uint(request.Id))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return tasks.DeleteTasksId404Response{}, nil
 	}
-	err = h.Service.DeleteTask(id)
 	if err != nil {
-		http.Error(w, "Error with delete", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
-	w.WriteHeader(http.StatusNoContent)
-
+	return tasks.DeleteTasksId204Response{}, nil
 }
