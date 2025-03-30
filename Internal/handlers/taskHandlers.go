@@ -55,9 +55,20 @@ func (h *Handler) PostTasks(_ context.Context, request tasks.PostTasksRequestObj
 }
 
 func (h *Handler) PatchTasksId(_ context.Context, request tasks.PatchTasksIdRequestObject) (tasks.PatchTasksIdResponseObject, error) {
+	var text string
+	var isDone bool
+
+	if request.Body.Task != nil {
+		text = *request.Body.Task
+	}
+
+	if request.Body.IsDone != nil {
+		isDone = *request.Body.IsDone
+	}
+
 	updateData := taskService.Task{
-		Text:   *request.Body.Task,
-		IsDone: *request.Body.IsDone,
+		Text:   text,
+		IsDone: isDone,
 	}
 
 	updatedTask, err := h.Service.UpdateTask(uint(request.Id), updateData)

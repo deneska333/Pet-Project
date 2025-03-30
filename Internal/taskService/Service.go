@@ -22,8 +22,13 @@ func (s *TaskService) UpdateTask(id uint, update Task) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	existing.Text = update.Text
+
+	if update.Text != "" {
+		existing.Text = update.Text
+	}
+
 	existing.IsDone = update.IsDone
+
 	return s.repo.UpdateTask(*existing)
 }
 
