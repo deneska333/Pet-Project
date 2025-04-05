@@ -6,3 +6,6 @@ run:
 
 migrate-up:
 	migrate -path ./migrations -database "postgres://testuser:testpass@localhost:5433/testdb?sslmode=disable" up
+
+lint:
+	golangci-lint run --out-format=colored-line-number

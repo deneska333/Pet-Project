@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"Pet-project/internal/taskService"
+	"Pet-project/internal/web/tasks"
 	"context"
 	"errors"
-	"project/internal/taskService"
-	"project/internal/web/tasks"
 
 	"gorm.io/gorm"
 )

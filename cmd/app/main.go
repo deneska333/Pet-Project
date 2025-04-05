@@ -1,19 +1,23 @@
 package main
 
 import (
+	"Pet-project/internal/database"
+	"Pet-project/internal/handlers"
+	"Pet-project/internal/taskService"
+	"Pet-project/internal/web/tasks"
 	"log"
-	"project/internal/database"
-	"project/internal/handlers"
-	"project/internal/taskService"
-	"project/internal/web/tasks"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
+
 	database.InitDB()
-	database.DB.AutoMigrate(&taskService.Task{})
+
+	if err := database.DB.AutoMigrate(&taskService.Task{}); err != nil {
+		log.Fatalf("failed to auto-migrate: %v", err)
+	}
 
 	repo := taskService.NewTaskRepository(database.DB)
 	service := taskService.NewService(repo)
@@ -27,6 +31,6 @@ func main() {
 	tasks.RegisterHandlers(e, strictHandler)
 
 	if err := e.Start(":8080"); err != nil {
-		log.Fatalf("failed to start: %v", err)
+		log.Fatalf("failed to start server: %v", err)
 	}
 }
