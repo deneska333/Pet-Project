@@ -6,6 +6,7 @@ paths:
   /tasks:
     get:
       summary: Get all tasks
+      operationId: getTasks
       tags: [tasks]
       responses:
         '200':
@@ -18,6 +19,7 @@ paths:
                   $ref: '#/components/schemas/Task'
     post:
       summary: Create a new task
+      operationId: createTask
       tags: [tasks]
       requestBody:
         required: true
@@ -36,6 +38,7 @@ paths:
   /tasks/{id}:
     patch:
       summary: Update a task
+      operationId: updateTask
       tags: [tasks]
       parameters:
         - name: id
@@ -60,6 +63,7 @@ paths:
           description: Task not found
     delete:
       summary: Delete a task
+      operationId: deleteTask
       tags: [tasks]
       parameters:
         - name: id
@@ -76,6 +80,7 @@ paths:
   /users:
     get:
       summary: Get all users
+      operationId: getUsers
       tags: [users]
       responses:
         '200':
@@ -88,6 +93,7 @@ paths:
                   $ref: '#/components/schemas/User'
     post:
       summary: Create a new user
+      operationId: createUser
       tags: [users]
       requestBody:
         required: true
@@ -106,6 +112,7 @@ paths:
   /users/{id}:
     patch:
       summary: Update a user
+      operationId: updateUser
       tags: [users]
       parameters:
         - name: id
@@ -130,6 +137,7 @@ paths:
           description: User not found
     delete:
       summary: Delete a user
+      operationId: deleteUser
       tags: [users]
       parameters:
         - name: id
