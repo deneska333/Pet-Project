@@ -1,5 +1,6 @@
 package: tasks
 generate:
+  types: true
   echo-server: true
   strict-server: true
   models: true

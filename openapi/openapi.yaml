@@ -113,7 +113,7 @@ paths:
     patch:
       summary: Update a user
       operationId: updateUser
-      tags: [users]
+      tags: [users]  # Исправлено с [user] → [users]
       parameters:
         - name: id
           in: path
@@ -138,7 +138,7 @@ paths:
     delete:
       summary: Delete a user
       operationId: deleteUser
-      tags: [users]
+      tags: [users]  # Исправлено с [user] → [users]
       parameters:
         - name: id
           in: path
