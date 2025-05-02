@@ -9,7 +9,7 @@ import (
 
 var DB *gorm.DB
 
-func InitDB() {
+func InitDB() (DB *gorm.DB) {
 
 	dsn := "host=localhost user=testuser password=testpass dbname=testdb port=5433 sslmode=disable"
 	var err error
@@ -17,4 +17,5 @@ func InitDB() {
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
+	return
 }

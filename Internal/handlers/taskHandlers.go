@@ -3,97 +3,64 @@ package handlers
 import (
 	"Pet-project/internal/taskService"
 	"Pet-project/internal/web/tasks"
-	"context"
-	"errors"
+	"net/http"
 
-	"gorm.io/gorm"
+	"github.com/labstack/echo/v4"
 )
 
-type Handler struct {
-	Service *taskService.TaskService
+type TaskHandler struct {
+	service taskService.TaskService
 }
 
-func NewHandler(service *taskService.TaskService) *Handler {
-	return &Handler{Service: service}
+func NewTaskHandler(service taskService.TaskService) *TaskHandler {
+	return &TaskHandler{service: service}
 }
 
-func (h *Handler) GetTasks(_ context.Context, _ tasks.GetTasksRequestObject) (tasks.GetTasksResponseObject, error) {
-	allTasks, err := h.Service.GetAllTasks()
+// GetTasks обработчик для получения задач
+func (h *TaskHandler) GetTasks(ctx echo.Context) error {
+	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+	tasks, err := h.service.GetAllTasks(userID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	response := tasks.GetTasks200JSONResponse{}
-	for _, tsk := range allTasks {
-		id := int64(tsk.ID)
-		response = append(response, tasks.Task{
-			Id:     &id,
-			Task:   &tsk.Text,
-			IsDone: &tsk.IsDone,
-		})
-	}
-	return response, nil
+	return ctx.JSON(http.StatusOK, tasks)
 }
 
-func (h *Handler) PostTasks(_ context.Context, request tasks.PostTasksRequestObject) (tasks.PostTasksResponseObject, error) {
-	taskToCreate := taskService.Task{
-		Text:   *request.Body.Task,
-		IsDone: *request.Body.IsDone,
+// CreateTask обработчик для создания задачи
+func (h *TaskHandler) PostTasks(ctx echo.Context) error {
+	var newTask tasks.PostTasksJSONRequestBody
+	if err := ctx.Bind(&newTask); err != nil {
+		return err
 	}
-
-	createdTask, err := h.Service.CreateTask(taskToCreate)
+	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+	task, err := h.service.CreateTask(newTask.Task, userID)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	id := int64(createdTask.ID)
-	return tasks.PostTasks201JSONResponse{
-		Id:     &id,
-		Task:   &createdTask.Text,
-		IsDone: &createdTask.IsDone,
-	}, nil
+	return ctx.JSON(http.StatusCreated, task)
 }
 
-func (h *Handler) PatchTasksId(_ context.Context, request tasks.PatchTasksIdRequestObject) (tasks.PatchTasksIdResponseObject, error) {
-	var text string
-	var isDone bool
-
-	if request.Body.Task != nil {
-		text = *request.Body.Task
+// DeleteTasksId обработчик для удаления задачи по ID
+func (h *TaskHandler) DeleteTasksId(ctx echo.Context, id int) error {
+	taskID := uint(id)
+	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+	if err := h.service.DeleteTask(taskID, userID); err != nil {
+		return err
 	}
-
-	if request.Body.IsDone != nil {
-		isDone = *request.Body.IsDone
-	}
-
-	updateData := taskService.Task{
-		Text:   text,
-		IsDone: isDone,
-	}
-
-	updatedTask, err := h.Service.UpdateTask(uint(request.Id), updateData)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return tasks.PatchTasksId404Response{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	id := int64(updatedTask.ID)
-	return tasks.PatchTasksId200JSONResponse{
-		Id:     &id,
-		Task:   &updatedTask.Text,
-		IsDone: &updatedTask.IsDone,
-	}, nil
+	return ctx.NoContent(http.StatusNoContent) // Возвращаем 204 статус
 }
 
-func (h *Handler) DeleteTasksId(_ context.Context, request tasks.DeleteTasksIdRequestObject) (tasks.DeleteTasksIdResponseObject, error) {
-	err := h.Service.DeleteTask(uint(request.Id))
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return tasks.DeleteTasksId404Response{}, nil
+// UpdateTask обработчик для обновления задачи
+func (h *TaskHandler) PatchTasksId(ctx echo.Context, id int) error {
+	var updateData tasks.PatchTasksIdJSONRequestBody
+	if err := ctx.Bind(&updateData); err != nil {
+		return err
 	}
+	taskID := uint(id)
+	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+	updatedTask, err := h.service.UpdateTask(taskID, userID, updateData.Task, updateData.IsDone)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return tasks.DeleteTasksId204Response{}, nil
+	return ctx.JSON(http.StatusOK, updatedTask)
 }

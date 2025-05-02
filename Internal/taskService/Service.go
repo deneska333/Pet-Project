@@ -1,61 +1,44 @@
 package taskService
 
-import (
-	"errors"
-)
-
-type Task struct {
-	ID     uint   `json:"id"`
-	Text   string `json:"text"`
-	IsDone bool   `json:"isDone"`
-}
-
-type TasksRepository interface {
-	GetAllTasks() ([]Task, error)
-	GetTaskByID(id uint) (*Task, error)
-	CreateTask(task Task) (Task, error)
-	UpdateTask(task Task) (*Task, error)
-	DeleteTaskByID(id uint) error
-}
-
 type TaskService struct {
 	repo TaskRepository
 }
 
-func NewService(repo TaskRepository) *TaskService {
+func NewTaskService(repo TaskRepository) *TaskService {
 	return &TaskService{repo: repo}
 }
 
-func (s *TaskService) GetAllTasks() ([]Task, error) {
-	return s.repo.GetAllTasks()
-}
-
-func (s *TaskService) GetTaskByID(id uint) (*Task, error) {
-	return s.repo.GetTaskByID(id)
-}
-
-func (s *TaskService) CreateTask(task Task) (Task, error) {
-	if task.Text == "" {
-		return Task{}, errors.New("task text cannot be empty")
+func (s *TaskService) CreateTask(text string, userID uint) (Task, error) {
+	task := Task{
+		Text:   text,
+		UserID: userID,
+		IsDone: false,
 	}
 	return s.repo.CreateTask(task)
 }
 
-func (s *TaskService) UpdateTask(id uint, update Task) (*Task, error) {
-	existing, err := s.repo.GetTaskByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if update.Text != "" {
-		existing.Text = update.Text
-	}
-
-	existing.IsDone = update.IsDone
-
-	return s.repo.UpdateTask(*existing)
+func (s *TaskService) GetAllTasks(userID uint) ([]Task, error) {
+	return s.repo.GetAllTasks(userID)
 }
 
-func (s *TaskService) DeleteTask(id uint) error {
-	return s.repo.DeleteTaskByID(id)
+func (s *TaskService) GetTaskByID(id, userID uint) (*Task, error) {
+	return s.repo.GetTaskByID(id, userID)
+}
+
+func (s *TaskService) UpdateTask(id, userID uint, text string, isDone bool) (*Task, error) {
+	task := Task{
+		ID:     id,
+		Text:   text,
+		IsDone: isDone,
+		UserID: userID,
+	}
+	return s.repo.UpdateTask(task)
+}
+
+func (s *TaskService) DeleteTask(id, userID uint) error {
+	return s.repo.DeleteTaskByID(id, userID)
+}
+
+func (s *TaskService) GetTasksByUserID(userID uint) ([]Task, error) {
+	return s.repo.GetAllTasks(userID)
 }

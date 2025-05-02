@@ -3,103 +3,68 @@ package handlers
 import (
 	"Pet-project/internal/userService"
 	"Pet-project/internal/web/users"
-	"context"
-	"errors"
+	"net/http"
 
-	"gorm.io/gorm"
+	"github.com/labstack/echo/v4"
 )
 
 type UsersHandler struct {
-	Service *userService.UserService
+	service userService.UserService
 }
 
-func NewUsersHandler(service *userService.UserService) *UsersHandler {
-	return &UsersHandler{Service: service}
+func NewUsersHandler(service userService.UserService) *UsersHandler {
+	return &UsersHandler{service: service}
 }
 
-func (h *UsersHandler) GetUsers(_ context.Context, _ users.GetUsersRequestObject) (users.GetUsersResponseObject, error) {
-	allUsers, err := h.Service.GetAllUsers()
+// GetUsers обработчик для получения пользователей
+func (h *UsersHandler) GetUsers(ctx echo.Context) error {
+	users, err := h.service.GetAllUsers()
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	response := users.GetUsers200JSONResponse{}
-	for _, usr := range allUsers {
-		id := int64(usr.ID)
-		response = append(response, users.User{
-			Id:    &id,
-			Email: &usr.Email,
-		})
-	}
-	return response, nil
+	return ctx.JSON(http.StatusOK, users)
 }
 
-func (h *UsersHandler) PostUsers(_ context.Context, request users.PostUsersRequestObject) (users.PostUsersResponseObject, error) {
-	if request.Body.Email == nil {
-		return nil, errors.New("email is required")
+// CreateUser обработчик для создания пользователя
+func (h *UsersHandler) PostUsers(ctx echo.Context) error {
+	var newUser users.PostUsersJSONRequestBody
+	if err := ctx.Bind(&newUser); err != nil {
+		return err
 	}
-
-	userToCreate := userService.User{
-		Email:    *request.Body.Email,
-		Password: "default_password", // Замените на реальную логику
+	user := userService.User{
+		Email:    newUser.Email,
+		Password: newUser.Password,
 	}
-
-	createdUser, err := h.Service.CreateUser(userToCreate)
+	createdUser, err := h.service.CreateUser(user)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	id := int64(createdUser.ID)
-	return users.PostUsers201JSONResponse{
-		Id:    &id,
-		Email: &createdUser.Email,
-	}, nil
+	return ctx.JSON(http.StatusCreated, createdUser)
 }
 
-func (h *UsersHandler) PatchUsersId(_ context.Context, request users.PatchUsersIdRequestObject) (users.PatchUsersIdResponseObject, error) {
-	updateData := userService.User{}
-	if request.Body.Email != nil {
-		updateData.Email = *request.Body.Email
+// DeleteUsersId обработчик для удаления пользователя по ID
+func (h *UsersHandler) DeleteUsersId(ctx echo.Context, id int) error {
+	userID := uint(id)
+	if err := h.service.DeleteUser(userID); err != nil {
+		return err
 	}
-
-	updatedUser, err := h.Service.UpdateUser(uint(request.Id), updateData)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return users.PatchUsersId404Response{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	id := int64(updatedUser.ID)
-	return users.PatchUsersId200JSONResponse{
-		Id:    &id,
-		Email: &updatedUser.Email,
-	}, nil
+	return ctx.NoContent(http.StatusNoContent) // Возвращаем 204 статус
 }
 
-func (h *UsersHandler) DeleteUsersId(_ context.Context, request users.DeleteUsersIdRequestObject) (users.DeleteUsersIdResponseObject, error) {
-	err := h.Service.DeleteUser(uint(request.Id))
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return users.DeleteUsersId404Response{}, nil
+// UpdateUser обработчик для обновления пользователя
+func (h *UsersHandler) PatchUsersId(ctx echo.Context, id int) error {
+	var updateData users.PatchUsersIdJSONRequestBody
+	if err := ctx.Bind(&updateData); err != nil {
+		return err
 	}
+	userID := uint(id)
+	user := userService.User{
+		Email:    updateData.Email,
+		Password: updateData.Password,
+	}
+	updatedUser, err := h.service.UpdateUser(userID, user)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return users.DeleteUsersId204Response{}, nil
-}
-
-func (h *UsersHandler) GetUsersId(_ context.Context, request users.GetUsersIdRequestObject) (users.GetUsersIdResponseObject, error) {
-	user, err := h.Service.GetUserByID(uint(request.Id))
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return users.GetUsersId404Response{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	id := int64(user.ID)
-	return users.GetUsersId200JSONResponse{
-		Id:    &id,
-		Email: &user.Email,
-	}, nil
+	return ctx.JSON(http.StatusOK, updatedUser)
 }
