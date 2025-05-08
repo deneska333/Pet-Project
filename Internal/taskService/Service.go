@@ -4,13 +4,13 @@ type TaskService struct {
 	repo TaskRepository
 }
 
-func NewTaskService(repo TaskRepository) *TaskService {
-	return &TaskService{repo: repo}
+func NewTaskService(repo TaskRepository) TaskService {
+	return TaskService{repo: repo}
 }
 
-func (s *TaskService) CreateTask(text string, userID uint) (Task, error) {
+func (s *TaskService) CreateTask(text *string, userID uint) (Task, error) {
 	task := Task{
-		Text:   text,
+		Text:   *text,
 		UserID: userID,
 		IsDone: false,
 	}

@@ -1,6 +1,10 @@
 package userService
 
-import "gorm.io/gorm"
+import (
+	"Pet-project/internal/taskService"
+
+	"gorm.io/gorm"
+)
 
 type UserRepository interface {
 	CreateUser(user User) (User, error)
@@ -8,13 +12,15 @@ type UserRepository interface {
 	GetUserByID(id uint) (*User, error)
 	UpdateUser(user User) (*User, error)
 	DeleteUserByID(id uint) error
+	FindByEmail(email string) (*User, error)
+	GetTasksForUser(userID uint) ([]taskService.Task, error)
 }
 
 type userRepository struct {
 	db *gorm.DB
 }
 
-func NewUserRepository(db *gorm.DB) *userRepository {
+func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
@@ -41,5 +47,20 @@ func (r *userRepository) UpdateUser(user User) (*User, error) {
 }
 
 func (r *userRepository) DeleteUserByID(id uint) error {
-	return r.db.Delete(&User{}, id).Error
+	result := r.db.Delete(&User{}, id)
+	return result.Error
 }
+
+func (r *userRepository) FindByEmail(email string) (*User, error) {
+	var user User
+	err := r.db.Where("email = ?", email).First(&user).Error
+	return &user, err
+}
+
+func (r *userRepository) GetTasksForUser(userID uint) ([]taskService.Task, error) {
+	var tasks []taskService.Task
+	err := r.db.Where("user_id = ?", userID).Find(&tasks).Error
+	return tasks, err
+}
+
+var _ UserRepository = (*userRepository)(nil)

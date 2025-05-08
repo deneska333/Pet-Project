@@ -4,6 +4,7 @@ import (
 	"Pet-project/internal/taskService"
 	"Pet-project/internal/web/tasks"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -16,9 +17,19 @@ func NewTaskHandler(service taskService.TaskService) *TaskHandler {
 	return &TaskHandler{service: service}
 }
 
-// GetTasks обработчик для получения задач
 func (h *TaskHandler) GetTasks(ctx echo.Context) error {
-	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+
+	userIDStr := ctx.QueryParam("user_id")
+	var userID uint = 0
+
+	if userIDStr != "" {
+		id, err := strconv.ParseUint(userIDStr, 10, 32)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid user_id parameter")
+		}
+		userID = uint(id)
+	}
+
 	tasks, err := h.service.GetAllTasks(userID)
 	if err != nil {
 		return err
@@ -26,13 +37,17 @@ func (h *TaskHandler) GetTasks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, tasks)
 }
 
-// CreateTask обработчик для создания задачи
 func (h *TaskHandler) PostTasks(ctx echo.Context) error {
 	var newTask tasks.PostTasksJSONRequestBody
 	if err := ctx.Bind(&newTask); err != nil {
 		return err
 	}
-	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+
+	var userID uint = 1
+	if newTask.UserID != nil {
+		userID = uint(*newTask.UserID)
+	}
+
 	task, err := h.service.CreateTask(newTask.Task, userID)
 	if err != nil {
 		return err
@@ -40,25 +55,50 @@ func (h *TaskHandler) PostTasks(ctx echo.Context) error {
 	return ctx.JSON(http.StatusCreated, task)
 }
 
-// DeleteTasksId обработчик для удаления задачи по ID
 func (h *TaskHandler) DeleteTasksId(ctx echo.Context, id int) error {
 	taskID := uint(id)
-	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
+
+	userIDStr := ctx.QueryParam("user_id")
+	var userID uint = 0
+
+	if userIDStr != "" {
+		id, err := strconv.ParseUint(userIDStr, 10, 32)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid user_id parameter")
+		}
+		userID = uint(id)
+	}
+
 	if err := h.service.DeleteTask(taskID, userID); err != nil {
 		return err
 	}
-	return ctx.NoContent(http.StatusNoContent) // Возвращаем 204 статус
+	return ctx.NoContent(http.StatusNoContent)
 }
 
-// UpdateTask обработчик для обновления задачи
 func (h *TaskHandler) PatchTasksId(ctx echo.Context, id int) error {
 	var updateData tasks.PatchTasksIdJSONRequestBody
 	if err := ctx.Bind(&updateData); err != nil {
 		return err
 	}
+
 	taskID := uint(id)
-	userID := uint(1) // Пример, можно извлечь ID пользователя из контекста
-	updatedTask, err := h.service.UpdateTask(taskID, userID, updateData.Task, updateData.IsDone)
+
+	var userID uint = 0
+
+	if updateData.UserID != nil {
+		userID = uint(*updateData.UserID)
+	} else {
+		userIDStr := ctx.QueryParam("user_id")
+		if userIDStr != "" {
+			id, err := strconv.ParseUint(userIDStr, 10, 32)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, "Invalid user_id parameter")
+			}
+			userID = uint(id)
+		}
+	}
+
+	updatedTask, err := h.service.UpdateTask(taskID, userID, *updateData.Task, *updateData.IsDone)
 	if err != nil {
 		return err
 	}
