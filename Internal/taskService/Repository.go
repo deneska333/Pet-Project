@@ -7,13 +7,7 @@ import (
 )
 
 var ErrTaskNotFound = errors.New("task not found")
-
-type Task struct {
-	ID     uint   `json:"id" gorm:"primaryKey"`
-	Text   string `json:"text" gorm:"not null"`
-	IsDone bool   `json:"isDone" gorm:"default:false"`
-	UserID uint   `json:"userId" gorm:"not null;index"`
-}
+var ErrUserNotFound = errors.New("task not found")
 
 type TaskRepository interface {
 	CreateTask(task Task) (Task, error)
@@ -58,7 +52,7 @@ func (r *taskRepository) UpdateTask(task Task) (*Task, error) {
 	err := r.db.Model(&Task{}).
 		Where("id = ? AND user_id = ?", task.ID, task.UserID).
 		Updates(map[string]interface{}{
-			"text":    task.Text,
+			"task":    task.Task,
 			"is_done": task.IsDone,
 		}).Error
 	if err != nil {

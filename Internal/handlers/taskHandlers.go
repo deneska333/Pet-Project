@@ -1,10 +1,12 @@
 package handlers
 
 import (
-	"Pet-project/internal/taskService"
-	"Pet-project/internal/web/tasks"
+	"log"
 	"net/http"
 	"strconv"
+
+	"Pet-project/internal/taskService"
+	"Pet-project/internal/web/tasks"
 
 	"github.com/labstack/echo/v4"
 )
@@ -18,7 +20,6 @@ func NewTaskHandler(service taskService.TaskService) *TaskHandler {
 }
 
 func (h *TaskHandler) GetTasks(ctx echo.Context) error {
-
 	userIDStr := ctx.QueryParam("user_id")
 	var userID uint = 0
 
@@ -32,26 +33,38 @@ func (h *TaskHandler) GetTasks(ctx echo.Context) error {
 
 	tasks, err := h.service.GetAllTasks(userID)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get tasks")
 	}
 	return ctx.JSON(http.StatusOK, tasks)
 }
 
 func (h *TaskHandler) PostTasks(ctx echo.Context) error {
-	var newTask tasks.PostTasksJSONRequestBody
-	if err := ctx.Bind(&newTask); err != nil {
-		return err
+	var req tasks.PostTasksJSONRequestBody
+	if err := ctx.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+	}
+
+	if err := ctx.Validate(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	if req.Task == nil || *req.Task == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Task field is required")
 	}
 
 	var userID uint = 1
-	if newTask.UserID != nil {
-		userID = uint(*newTask.UserID)
+	if req.UserID != nil {
+		userID = uint(*req.UserID)
 	}
 
-	task, err := h.service.CreateTask(newTask.Task, userID)
+	task, err := h.service.CreateTask(*req.Task, userID)
 	if err != nil {
-		return err
+		if err.Error() == "user not found" {
+			return echo.NewHTTPError(http.StatusBadRequest, "Specified user does not exist")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create task")
 	}
+
 	return ctx.JSON(http.StatusCreated, task)
 }
 
@@ -68,25 +81,29 @@ func (h *TaskHandler) DeleteTasksId(ctx echo.Context, id int) error {
 		}
 		userID = uint(id)
 	}
-
+	log.Println(taskID, userID)
 	if err := h.service.DeleteTask(taskID, userID); err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete task")
 	}
+
 	return ctx.NoContent(http.StatusNoContent)
 }
 
 func (h *TaskHandler) PatchTasksId(ctx echo.Context, id int) error {
-	var updateData tasks.PatchTasksIdJSONRequestBody
-	if err := ctx.Bind(&updateData); err != nil {
-		return err
+	var req tasks.PatchTasksIdJSONRequestBody
+	if err := ctx.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+	}
+
+	if err := ctx.Validate(req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	taskID := uint(id)
-
 	var userID uint = 0
 
-	if updateData.UserID != nil {
-		userID = uint(*updateData.UserID)
+	if req.UserID != nil {
+		userID = uint(*req.UserID)
 	} else {
 		userIDStr := ctx.QueryParam("user_id")
 		if userIDStr != "" {
@@ -98,9 +115,20 @@ func (h *TaskHandler) PatchTasksId(ctx echo.Context, id int) error {
 		}
 	}
 
-	updatedTask, err := h.service.UpdateTask(taskID, userID, *updateData.Task, *updateData.IsDone)
-	if err != nil {
-		return err
+	taskText := ""
+	if req.Task != nil {
+		taskText = *req.Task
 	}
+
+	isDone := false
+	if req.IsDone != nil {
+		isDone = *req.IsDone
+	}
+
+	updatedTask, err := h.service.UpdateTask(taskID, userID, taskText, isDone)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update task")
+	}
+
 	return ctx.JSON(http.StatusOK, updatedTask)
 }

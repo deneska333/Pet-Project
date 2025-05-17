@@ -1,5 +1,7 @@
 package taskService
 
+import "gorm.io/gorm"
+
 type TaskService struct {
 	repo TaskRepository
 }
@@ -8,11 +10,10 @@ func NewTaskService(repo TaskRepository) TaskService {
 	return TaskService{repo: repo}
 }
 
-func (s *TaskService) CreateTask(text *string, userID uint) (Task, error) {
+func (s *TaskService) CreateTask(taskText string, userID uint) (Task, error) {
 	task := Task{
-		Text:   *text,
+		Task:   taskText,
 		UserID: userID,
-		IsDone: false,
 	}
 	return s.repo.CreateTask(task)
 }
@@ -25,10 +26,10 @@ func (s *TaskService) GetTaskByID(id, userID uint) (*Task, error) {
 	return s.repo.GetTaskByID(id, userID)
 }
 
-func (s *TaskService) UpdateTask(id, userID uint, text string, isDone bool) (*Task, error) {
+func (s *TaskService) UpdateTask(id, userID uint, taskText string, isDone bool) (*Task, error) {
 	task := Task{
-		ID:     id,
-		Text:   text,
+		Model:  gorm.Model{ID: id},
+		Task:   taskText,
 		IsDone: isDone,
 		UserID: userID,
 	}
